@@ -20,56 +20,8 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 
-
-
-
-
-app.post('/data', async (req, res) => {
-    try {
-        const createTableQuery = `
-        CREATE TABLE IF NOT EXISTS blogging(
-            id SERIAL PRIMARY KEY,
-            heading VARCHAR(30),
-            content TEXT[],
-        uploadedBy TEXT[]
-        )`;
-
-        await pool.query(createTableQuery);
-
-        console.log(req.cookies.token);
-
-        let decoded = JsonWebToken.verify(req.cookies.token, 'secretkey');
-        const { data, heading } = req.body;
-        console.log(decoded.email, "yoooo") // bar
-        let email = decoded.email
-
-        console.log("File is created");
-
-        console.log(data);
-
-        const query = {
-            text: 'INSERT INTO blogging (content, heading, uploadedBy) VALUES($1, $2, $3) RETURNING *',
-
-            values: [[data], heading, [email]]
-
-        };
-
-        console.log(query);
-
-        const result = await pool.query(query);
-
-
-        return res.json("File uploaded")
-
-
-    } catch (error) {
-        // console.log(error);
-        res.json("database error")
-
-    }
-
-});
-
+import createUserSchema from './models/userModel.js';
+import createBloggingSchema from './models/bloggingModel.js';
 
 //router
 import router from './router/checkUserlogin.js';
@@ -82,6 +34,63 @@ app.use(createAccount)
 app.use(loginRouter)
 app.use(logoutRouer)
 app.use(getBlog)
+
+
+
+
+try {
+    app.post('/data', async (req, res) => {
+        try {
+
+            pool.query(createBloggingSchema);
+
+            console.log(req.cookies.token);
+
+            let decoded = JsonWebToken.verify(req.cookies.token, 'secretkey');
+            const { data, heading } = req.body;
+            console.log(decoded.email, "yoooo") // bar
+            let email = decoded.email
+
+            console.log("File is created");
+
+            const user = await pool.query('SELECT * FROM userAccount')
+            const length = user.rows.length
+            console.log(length);
+
+            const userId =  user.rows[length - 1].id
+
+
+            console.log(typeof userId);
+
+            try {
+                const query = {
+                    text: 'INSERT INTO blogging (content, heading, uploadedBy) VALUES($1, $2, $3) RETURNING *',
+                    values: [[data], heading, userId]
+                };
+                console.log(query, "queries");
+
+                const result = await pool.query(query);
+                // console.log(result);
+
+            } catch (err) {
+                console.log(err);
+
+            }
+
+            return res.json("File uploaded")
+
+
+        } catch (error) {
+            // console.log(error);
+            res.json("database error")
+
+        }
+
+    });
+} catch (error) {
+    console.log(error);
+}
+
 
 app.listen(3000, () => {
     console.log("Server running on port 3000");

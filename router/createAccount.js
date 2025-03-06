@@ -2,6 +2,8 @@ import express from 'express'
 const createAccount = express.Router()
 import pool from '../database.js';
 import JsonWebToken from 'jsonwebtoken';
+import createBloggingSchema from '../models/bloggingModel.js';
+import createUserSchema from '../models/userModel.js';
 
 createAccount.post('/createAccount', async (req, res) => {
     console.log("Account created");
@@ -10,26 +12,20 @@ createAccount.post('/createAccount', async (req, res) => {
 
     let token = JsonWebToken.sign({ email: email }, 'secretkey');
 
-
-    const createTableQuery = `
-    CREATE TABLE IF NOT EXISTS userAccount(
-        id SERIAL PRIMARY KEY,
-       email VARCHAR(30),
-        password VARCHAR(30)
-    )`;
-
-    await pool.query(createTableQuery)
-
-
+    pool.query(createUserSchema)
 
     const em = email
 
-    const data = await pool.query(
+    const data =  pool.query(
         'SELECT email FROM userAccount WHERE email = $1;',
+
         [em], (err, result) => {
-            console.log(result.rows[0]);
-            if (result.rows[0] == undefined) {
+
+
+            if (result == undefined||result.rows[0]==undefined) {
+
                 res.cookie("token", token)
+
                 if (email && password) {
                     const query = {
                         text: 'INSERT INTO userAccount (email, password) VALUES($1, $2) RETURNING *',
@@ -37,27 +33,20 @@ createAccount.post('/createAccount', async (req, res) => {
                         values: [email, password]
                     };
 
-                    // console.log(query);
-
                     const result = pool.query(query);
 
                     console.log(token,"tpken");
 
                     res.json("Account created")
                 }
-                // return res.json("Account created")
-            }
+
+                }
             else {
                 return res.json("Account already exist")
             }
 
         }
     );
-
-
-    // else {
-    //     res.json("no data")
-    // }
 
 })
 

@@ -1,10 +1,10 @@
 import express from 'express'
 import cookieParser from 'cookie-parser';
 const router = express.Router()
-// import JsonWebToken from 'jsonwebtoken'
+
 import JsonWebToken from 'jsonwebtoken';
 
-// router.use(cookieParser())
+
 
 router.get('/checkUserLogin', (req, res) => {
     console.log("Incoming data");
