@@ -2,6 +2,7 @@ import express from 'express'
 const createAccount = express.Router()
 import pool from '../database.js';
 import JsonWebToken from 'jsonwebtoken';
+import bcrypt from 'bcrypt'
 import createBloggingSchema from '../models/bloggingModel.js';
 import createUserSchema from '../models/userModel.js';
 
@@ -24,20 +25,29 @@ createAccount.post('/createAccount', async (req, res) => {
 
             if (result == undefined||result.rows[0]==undefined) {
 
-                res.cookie("token", token)
+
 
                 if (email && password) {
-                    const query = {
-                        text: 'INSERT INTO userAccount (email, password) VALUES($1, $2) RETURNING *',
 
-                        values: [email, password]
-                    };
+                    bcrypt.genSalt(5, function(err, salt) {
+                        bcrypt.hash(password, salt, function(err, hash) {
+                            console.log(err);
 
-                    const result = pool.query(query);
+                            const query = {
+                                text: 'INSERT INTO userAccount (email, password) VALUES($1, $2) RETURNING *',
 
-                    console.log(token,"tpken");
+                                values: [email, hash]
+                            };
 
-                    res.json("Account created")
+                            const result = pool.query(query);
+
+                            console.log(token,"tpken");
+                            res.cookie("token", token)
+                            return res.json("Account created")
+
+                        })
+                    });
+
                 }
 
                 }
