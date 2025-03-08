@@ -11,10 +11,9 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser())
 
 const corsOptions = {
-    origin: "http://localhost:5173",
+    origin: ["http://localhost:5173"],
     credentials: true,
-    optionSuccessStatus: 200,
-
+    methods: ['GET', 'POST', 'PUT', 'DELETE']
 }
 
 app.use(cors(corsOptions));
@@ -37,7 +36,6 @@ app.use(getBlog)
 
 
 
-
 try {
     app.post('/data', async (req, res) => {
         try {
@@ -54,23 +52,22 @@ try {
             console.log("File is created");
 
             const user = await pool.query('SELECT * FROM userAccount')
-            const length = user.rows.length
-            console.log(length);
-
-            const userId =  user.rows[length - 1].id
-
-
-            console.log(typeof userId);
 
             try {
-                const query = {
-                    text: 'INSERT INTO blogging (content, heading, uploadedBy) VALUES($1, $2, $3) RETURNING *',
-                    values: [[data], heading, userId]
-                };
-                console.log(query, "queries");
 
-                const result = await pool.query(query);
-                // console.log(result);
+                const uploadedByUser = await pool.query(`SELECT * FROM userAccount where email=$1`, [email], async (err, result) => {
+                    console.log("uploaded by user");
+                    console.log(result.rows[0].id);
+                    let userId = result.rows[0].id
+                    const query = {
+                        text: 'INSERT INTO blogging (content, heading, uploadedBy) VALUES($1, $2, $3) RETURNING *',
+                        values: [[data], heading, userId]
+                    };
+                    console.log(query, "queries");
+
+                    await pool.query(query);
+
+                })
 
             } catch (err) {
                 console.log(err);
@@ -79,9 +76,8 @@ try {
 
             return res.json("File uploaded")
 
-
         } catch (error) {
-            // console.log(error);
+
             res.json("database error")
 
         }
